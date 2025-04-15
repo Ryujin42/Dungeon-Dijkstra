@@ -1,0 +1,3 @@
+WIDTH = 1600
+HEIGHT = 960
+
