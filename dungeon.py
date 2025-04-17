@@ -1,6 +1,7 @@
 import json
 import random
 from heapq import heapify, heappop, heappush
+from constants import DUNGEON_X, DUNGEON_Y
 
 class Dungeon:
     def __init__(self):
@@ -10,25 +11,30 @@ class Dungeon:
 
 
     def generate(self, max_x: int, max_y: int, num_rooms: int, max_weight: int) -> tuple[list, list]:
+        if num_rooms < 1 or num_rooms > max_x*max_y:
+            return [], []
+
         # Initialize grid (0 = empty, 1 = room, 2 = corridor)
         self.grid = [[0 for _ in range(max_x)] for _ in range(max_y)]
         rooms = []
+                
+        # first_x = random.randint(0, max_x-1)
+        # first_y = random.randint(0, max_y-1)
+
+        first_x = DUNGEON_X // 2
+        first_y = DUNGEON_Y // 2
         
-        if num_rooms < 1 or num_rooms > max_x*max_y:
-            return [], []
-        
-        first_x, first_y = random.randint(0, max_x-1), random.randint(0, max_y-1)
         self.grid[first_y][first_x] = 1
         rooms.append((first_x, first_y))
         
         while len(rooms) < num_rooms:
             random.shuffle(rooms)
-            placed = False
             
             for room_x, room_y in rooms:
                 neighbors = []
                 for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-                    nx, ny = room_x + dx, room_y + dy
+                    nx = room_x + dx
+                    ny = room_y + dy
                     if 0 <= nx < max_x and 0 <= ny < max_y and self.grid[ny][nx] == 0:
                         neighbors.append((nx, ny))
                 
@@ -36,12 +42,8 @@ class Dungeon:
                     new_x, new_y = random.choice(neighbors)
                     self.grid[new_y][new_x] = 1
                     rooms.append((new_x, new_y))
-                    placed = True
                     break
             
-            if not placed:
-                break
-        
         # Connect every rooms (use tree logic)
         unconnected = set(rooms)
         connected = set()
@@ -163,8 +165,8 @@ class Dungeon:
 
         
         return (times[end_node], path[::-1])
-    
-    
+   
+
     def __str__(self):
         return json.dumps(self.graph, sort_keys=True, indent=4)
 

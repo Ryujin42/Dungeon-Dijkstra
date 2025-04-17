@@ -6,11 +6,13 @@ from dungeon import Dungeon
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.font = pygame.font.Font(pygame.font.get_default_font(), 24)
         self.clock = pygame.time.Clock()
 
         self.dungeon = Dungeon()
         self.grid, self.corridors = self.dungeon.generate(DUNGEON_X, DUNGEON_Y, NUM_ROOMS, MAX_WEIGTH)     
+        self.room_size = HEIGHT // (max(DUNGEON_X, DUNGEON_Y)*2)
 
         self.start = ()
         self.end = ()
@@ -24,8 +26,11 @@ class Game:
         pygame.draw.rect(
             self.screen,
             (100, 100, 100),
-            pygame.Rect(0, 0, WINDOW_SIZE, WINDOW_SIZE)
+            pygame.Rect(0, 0, WIDTH, HEIGHT)
         )
+
+        if not self.grid:
+            return
 
         # rooms
         for y in range(DUNGEON_Y):
@@ -43,10 +48,10 @@ class Game:
                         self.screen,
                         color,
                         pygame.Rect(
-                            ROOM_SIZE * (x*2 + .5),
-                            ROOM_SIZE * (y*2 + .5),
-                            ROOM_SIZE,
-                            ROOM_SIZE
+                            self.room_size * (x*2 + .5),
+                            self.room_size * (y*2 + .5),
+                            self.room_size,
+                            self.room_size
                         )
                     )
 
@@ -66,10 +71,10 @@ class Game:
                     self.screen,
                     color,
                     pygame.Rect(
-                        ROOM_SIZE * (corridor[0][0]*2 + 1.5),
-                        ROOM_SIZE * (corridor[0][1]*2 + .5) + ROOM_SIZE // 3,
-                        ROOM_SIZE,
-                        ROOM_SIZE // 3
+                        self.room_size * (corridor[0][0]*2 + 1.5),
+                        self.room_size * (corridor[0][1]*2 + .5) + self.room_size // 3,
+                        self.room_size,
+                        self.room_size // 3
                     )
                 )
 
@@ -78,12 +83,27 @@ class Game:
                     self.screen,
                     color,
                     pygame.Rect(
-                        ROOM_SIZE * (corridor[0][0]*2 + .5) + ROOM_SIZE //3,
-                        ROOM_SIZE * (corridor[0][1]*2 + 1.5),
-                        ROOM_SIZE // 3,
-                        ROOM_SIZE
+                        self.room_size * (corridor[0][0]*2 + .5) + self.room_size // 3,
+                        self.room_size * (corridor[0][1]*2 + 1.5),
+                        self.room_size // 3,
+                        self.room_size
                     )
                 )
+
+
+    def write_instructions(self):
+        texts = [
+                    "Instructions",
+                    "",
+                    "<SPACE> to generate a new dungeon",
+                    "<R> to reset the dungeon",
+                    "<LEFT-CLICK> to set the `Start` room",
+                    "<RIGHT-CLICK> to set the `End` room"
+                ]
+
+        for i in range(len(texts)):
+            text_surface = pygame.font.Font.render(self.font, texts[i], True, (255, 255, 255))
+            self.screen.blit(text_surface, (HEIGHT, 50 * (i+1)))
 
 
     def loop(self):
@@ -93,24 +113,32 @@ class Game:
                     self.run = False
 
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_SPACE:
+                    if event.key == pygame.K_r:
+                        self.start = ()
+                        self.end = ()
+                    elif event.key == pygame.K_SPACE:
                         self.start = ()
                         self.end = ()
                         self.grid, self.corridors = self.dungeon.generate(DUNGEON_X, DUNGEON_Y, NUM_ROOMS, MAX_WEIGTH)
                 
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button in (1, 3):
                     mouse_pos = event.pos
-                    if ROOM_SIZE//2 <= mouse_pos[0] < WINDOW_SIZE - ROOM_SIZE//2:
-                        coords = mouse_pos[1] // (ROOM_SIZE*2), mouse_pos[0] // (ROOM_SIZE*2)
-                        if self.grid[coords[0]][coords[1]]:
-                            if event.button == 1: # left click
-                                self.start = coords
-                                if self.end == coords: self.end = ()
-    
-                            elif event.button == 3: # right click
-                                self.end = coords
-                                if self.start == coords: self.start = ()
-    
+                    if (not self.room_size//2 <= mouse_pos[0] < HEIGHT - self.room_size//2) or \
+                            (not self.room_size//2 <= mouse_pos[1] < HEIGHT - self.room_size//2):
+                        continue
+
+                    coords = mouse_pos[1] // (self.room_size*2), mouse_pos[0] // (self.room_size*2)
+                    if not self.grid or not self.grid[coords[0]][coords[1]]:
+                        continue
+
+                    if event.button == 1: # left click
+                        self.start = coords
+                        if self.end == coords: self.end = ()
+
+                    elif event.button == 3: # right click
+                        self.end = coords
+                        if self.start == coords: self.start = ()
+
             if self.start and self.end:
                 self.dungeon.prepare_dungeon_graph()
                 self.pathfind = self.dungeon.calculate(self.start, self.end)[1]
@@ -118,6 +146,7 @@ class Game:
                 self.pathfind = []
                 
             self.draw_dungeon()
+            self.write_instructions()
 
             pygame.display.update()
             self.clock.tick(60)
