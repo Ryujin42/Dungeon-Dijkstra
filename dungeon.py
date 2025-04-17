@@ -2,6 +2,7 @@ import json
 import random
 from heapq import heapify, heappop, heappush
 
+
 class Dungeon:
     def __init__(self):
         self.graph = {}
@@ -9,39 +10,35 @@ class Dungeon:
         self.connections = {}
 
 
-    def generate(self, max_x: int, max_y: int, num_rooms: int, max_weight: int) -> tuple[list, list]:
-        # Initialize grid (0 = empty, 1 = room, 2 = corridor)
-        self.grid = [[0 for _ in range(max_x)] for _ in range(max_y)]
-        rooms = []
-        
-        if num_rooms < 1 or num_rooms > max_x*max_y:
+
+    def generate(self, dungeon_size: int, num_rooms: int, extra_vertexes: float) -> tuple[list, list]:
+        if num_rooms < 1 or num_rooms > dungeon_size**2:
             return [], []
-        
-        first_x, first_y = random.randint(0, max_x-1), random.randint(0, max_y-1)
-        self.grid[first_y][first_x] = 1
-        rooms.append((first_x, first_y))
+
+        # Initialize grid (0 = empty, 1 = room, 2 = corridor)
+        self.grid = [[0 for _ in range(dungeon_size)] for _ in range(dungeon_size)]
+        rooms = []
+                
+        self.grid[dungeon_size//2][dungeon_size//2] = 1
+        rooms.append((dungeon_size//2, dungeon_size//2))
         
         while len(rooms) < num_rooms:
             random.shuffle(rooms)
-            placed = False
             
             for room_x, room_y in rooms:
                 neighbors = []
                 for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
-                    nx, ny = room_x + dx, room_y + dy
-                    if 0 <= nx < max_x and 0 <= ny < max_y and self.grid[ny][nx] == 0:
+                    nx = room_x + dx
+                    ny = room_y + dy
+                    if 0 <= nx < dungeon_size and 0 <= ny < dungeon_size and self.grid[ny][nx] == 0:
                         neighbors.append((nx, ny))
                 
                 if neighbors:
                     new_x, new_y = random.choice(neighbors)
                     self.grid[new_y][new_x] = 1
                     rooms.append((new_x, new_y))
-                    placed = True
                     break
             
-            if not placed:
-                break
-        
         # Connect every rooms (use tree logic)
         unconnected = set(rooms)
         connected = set()
@@ -82,14 +79,15 @@ class Dungeon:
                     connected.add((x2, y2))
                     unconnected.remove((x2, y2))
         
-        # Add some extra random connections (25% chance per adjacent pair)
+        # Add some extra random connections
+
         for i in range(len(rooms)):
             for j in range(i+1, len(rooms)):
                 x1, y1 = rooms[i]
                 x2, y2 = rooms[j]
 
                 if (abs(x1 - x2) == 1 and y1 == y2) or (abs(y1 - y2) == 1 and x1 == x2):
-                    if random.random() < 0.25 and ((x1, y1), (x2, y2)) not in self.connections:
+                    if random.random() < extra_vertexes and ((x1, y1), (x2, y2)) not in self.connections:
                         if x1 == x2:  # Vertical connection
                             y_min, y_max = min(y1, y2), max(y1, y2)
                             for y in range(y_min, y_max + 1):
@@ -115,9 +113,8 @@ class Dungeon:
         for (x1, y1), (x2, y2) in self.connections:
             room1 = (y1, x1)
             room2 = (y2, x2)
-            distance = 1 # random.randint(1, 10)
-            self.graph[room1][room2] = distance
-            self.graph[room2][room1] = distance
+            self.graph[room1][room2] = 1
+            self.graph[room2][room1] = 1
         
         return self.graph
 
@@ -163,8 +160,8 @@ class Dungeon:
 
         
         return (times[end_node], path[::-1])
-    
-    
+   
+
     def __str__(self):
         return json.dumps(self.graph, sort_keys=True, indent=4)
 
