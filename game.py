@@ -18,7 +18,7 @@ class Game:
         self.sliders = [
             Slider(HEIGHT + 20, 450, 400, 2, 50, self.dungeon_size, "Dungeon Size"),
             Slider(HEIGHT + 20, 500, 400, 2, 500, self.num_rooms, "Rooms"),
-            Slider(HEIGHT + 20, 550, 400, 0.0, 1.0, self.extra_vertexes, "Vertexes", is_float=True)
+            Slider(HEIGHT + 20, 550, 400, 0.0, 1.0, self.extra_vertexes, "Extra vertexes", is_float=True)
         ]
 
 
